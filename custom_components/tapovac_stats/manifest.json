@@ -1,0 +1,9 @@
+{
+  "domain": "tapovac_stats",
+  "name": "TapoVac Stats",
+  "version": "0.0.0",
+  "dependencies": ["tapo_rv30"],
+  "codeowners": [],
+  "requirements": [],
+  "iot_class": "calculated"
+}
