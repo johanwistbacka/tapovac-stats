@@ -29,7 +29,7 @@ TapoVac-ADV måste redan vara installerat och konfigurerat.
 
 ### Via HACS
 
-1. Lägg till `https://github.com/johanwistbacka/tapovac-srats` under HACS →
+1. Lägg till `https://github.com/johanwistbacka/tapovac-stats` under HACS →
    Anpassade förråd, kategori **Integration**.
 2. Hämta TapoVac Stats och starta om Home Assistant.
 3. Öppna Inställningar → Enheter och tjänster → Lägg till integration.
