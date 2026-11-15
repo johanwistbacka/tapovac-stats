@@ -41,6 +41,9 @@ bekräftat antal noll.
 
 ## Nästa utvecklingssteg
 
+Det konkreta upplägget för sensorer, dataflöde, uppdateringar och kort finns i
+[DESIGN.md](DESIGN.md).
+
 1. Kontrollera datastrukturen mot användarens installerade TapoVac-ADV-version.
 2. Implementera adapter och val av TapoVac-ADV-enhet via konfigurationsflöde.
 3. Implementera rumssensorer med uppdatering även vid midnatt och när äldre
