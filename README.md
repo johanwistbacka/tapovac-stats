@@ -16,9 +16,9 @@ Originalintegrationen kan fortsätta uppdateras som vanligt; ingen fork behövs.
 
 ## Status
 
-Version 0.1.0 är en första testversion. Statistiktester använder syntetiska data.
+Version 0.1.1 är en första testversion. Statistiktester använder syntetiska data.
 Alla 16 tester passerar, inklusive livscykel och kortmall mot Home Assistant
-2025.1.4 på Python 3.12, med en simulerad TapoVac-datakälla.
+2025.11.1 på Python 3.13, med en simulerad TapoVac-datakälla.
 Kopplingen till en verklig robot och användarens installerade TapoVac-ADV
 måste verifieras innan normal användning. Interna upstream-ändringar kan
 kräva uppdatering av TapoVac Stats.
@@ -77,6 +77,9 @@ Datakällan läses via en avgränsad adapter till TapoVac-ADV:s interna coordina
 `_freshness_loaded` och `last_update_success`. Integrationen skriver inte i
 originalets data och anropar inte roboten direkt.
 
+Senaste publicerade TapoVac-ADV **v7.11.0** har kontrollerats statiskt och
+innehåller de rums- och historikfält som adaptern använder.
+
 Granskad upstream-revision: `3677024c358eeb3d3281e5be9ca5af6729d11520`.
 Äldre versioner utan dessa strukturer kan ge otillgängliga sensorer.
 
@@ -85,6 +88,6 @@ Granskad upstream-revision: `3677024c358eeb3d3281e5be9ca5af6729d11520`.
 Kör `python -m unittest discover -s tests -v` från repots rot.
 Beräkningstesterna kräver bara Python. Med Home Assistant installerat körs
 även tester för konfiguration, uppdateringar, återhämtning, kartbyte och kortmall.
-En reproducerbar testmiljö kan skapas med Python 3.12 och
+En reproducerbar testmiljö kan skapas med Python 3.13 och
 `pip install -r requirements-test.txt` i en separat virtuell miljö.
 Se [DESIGN.md](DESIGN.md) för arkitektur och ursprungliga designval.

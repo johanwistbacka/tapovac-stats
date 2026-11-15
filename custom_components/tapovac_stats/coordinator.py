@@ -16,7 +16,7 @@ _LOGGER = logging.getLogger(__name__)
 
 class TapoStatsCoordinator(DataUpdateCoordinator):
     def __init__(self, hass, entry):
-        super().__init__(hass, _LOGGER, name=entry.title)
+        super().__init__(hass, _LOGGER, name=entry.title, config_entry=entry)
         self.source_entry_id = entry.data[CONF_SOURCE]
         self._source = None
         self._remove_source_listener = None

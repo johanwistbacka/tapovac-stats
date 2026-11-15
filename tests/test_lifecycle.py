@@ -1,5 +1,6 @@
 """Integration checks against real Home Assistant APIs, when installed."""
 import importlib.util
+import inspect
 import tempfile
 import unittest
 from datetime import datetime, timezone
@@ -32,7 +33,8 @@ class LifecycleTests(unittest.IsolatedAsyncioTestCase):
             rooms_last_cleaned={'1:1': {'last_cleaned': stamp, 'coverage': 80}},
             rooms_clean_log={'1:1': [stamp]}, async_add_listener=listen)
         self.hass.data['tapo_rv30'] = {'source': self.source}
-        self.entry = SimpleNamespace(title='Test', entry_id='stats', data={'source_entry_id': 'source'})
+        self.entry = SimpleNamespace(title='Test', entry_id='stats', data={'source_entry_id': 'source'},
+                                     async_on_unload=lambda callback: None, pref_disable_polling=False)
         self.coordinator = TapoStatsCoordinator(self.hass, self.entry)
         self.stop = self.coordinator.start()
 
@@ -116,7 +118,9 @@ class LifecycleTests(unittest.IsolatedAsyncioTestCase):
         await self.coordinator.async_refresh()
         self.assertEqual(len(entities), 7)
         for remove in removers:
-            remove()
+            result = remove()
+            if inspect.isawaitable(result):
+                await result
 
     async def test_configuration_source_selection(self):
         from unittest.mock import patch, AsyncMock, Mock
@@ -167,5 +171,7 @@ class LifecycleTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(await async_unload_entry(self.hass, self.entry))
         self.assertNotIn('stats', self.hass.data[DOMAIN])
         for remove in removers:
-            remove()
+            result = remove()
+            if inspect.isawaitable(result):
+                await result
         self.assertIsNone(coordinator._source)

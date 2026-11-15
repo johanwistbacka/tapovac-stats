@@ -1,7 +1,7 @@
 {
   "domain": "tapovac_stats",
   "name": "TapoVac Stats",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "dependencies": [
     "tapo_rv30"
   ],

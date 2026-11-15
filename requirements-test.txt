@@ -1,7 +1,4 @@
-# Isolated API test environment: Python 3.12 / Home Assistant 2025.1.4.
-homeassistant==2025.1.4
-# Keep optional Bluetooth transitive dependencies contemporary with this HA version.
-habluetooth==3.0.0
-bluetooth-data-tools==1.20.0
-bleak==0.22.3
-bleak-retry-connector==3.8.0
+# Isolated API test environment: Python 3.13 / Home Assistant 2025.11.1.
+homeassistant==2025.11.1
+# aiodns shipped with this HA version requires the pycares 4 API.
+pycares<5
