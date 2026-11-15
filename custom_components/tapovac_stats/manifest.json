@@ -1,9 +1,17 @@
 {
   "domain": "tapovac_stats",
   "name": "TapoVac Stats",
-  "version": "0.0.0",
-  "dependencies": ["tapo_rv30"],
-  "codeowners": [],
+  "version": "0.1.0",
+  "dependencies": [
+    "tapo_rv30"
+  ],
+  "codeowners": [
+    "@johanwistbacka"
+  ],
   "requirements": [],
-  "iot_class": "calculated"
+  "iot_class": "calculated",
+  "config_flow": true,
+  "documentation": "https://github.com/johanwistbacka/tapovac-srats",
+  "issue_tracker": "https://github.com/johanwistbacka/tapovac-srats/issues",
+  "integration_type": "service"
 }

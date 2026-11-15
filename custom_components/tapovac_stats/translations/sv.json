@@ -1,0 +1,21 @@
+{
+  "title": "TapoVac Stats",
+  "config": {
+    "step": {
+      "user": {
+        "title": "TapoVac Stats",
+        "description": "Välj din TapoVac-ADV-installation.",
+        "data": {
+          "source_entry_id": "TapoVac-ADV"
+        }
+      }
+    },
+    "error": {
+      "source_missing": "Installationen finns inte längre."
+    },
+    "abort": {
+      "no_source": "Installera TapoVac-ADV först.",
+      "already_configured": "Denna installation är redan tillagd."
+    }
+  }
+}

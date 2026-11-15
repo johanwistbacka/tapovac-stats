@@ -1,0 +1,20 @@
+type: markdown
+title: Städning per rum
+content: |-
+  {% set entity = 'sensor.byt_till_din_rumsoversikt' %}
+  {% if states(entity) in ['unknown', 'unavailable'] %}
+  Städstatistiken är inte tillgänglig.
+  {% else %}
+  {% set rooms = state_attr(entity, 'rooms') or [] %}
+  {% if not rooms %}
+  Inga rum är tillgängliga på den aktiva kartan ännu.
+  {% else %}
+  | Rum | Senast | Idag | 7 dagar |
+  | :--- | :--- | ---: | ---: |
+  {% for room in rooms %}
+  {% set stamp = as_datetime(room.last_cleaned, none) %}
+  {% set name = room.name | replace('|', '&#124;') | replace('\n', ' ') | e %}
+  | {{ name }} | {{ as_local(stamp).strftime('%d/%m %H:%M') if stamp else 'Okänt' }} | {{ room.today if room.today is not none else '—' }} | {{ room.last_seven_days if room.last_seven_days is not none else '—' }} |
+  {% endfor %}
+  {% endif %}
+  {% endif %}

@@ -1,0 +1,21 @@
+{
+  "title": "TapoVac Stats",
+  "config": {
+    "step": {
+      "user": {
+        "title": "TapoVac Stats",
+        "description": "Select your TapoVac-ADV installation.",
+        "data": {
+          "source_entry_id": "TapoVac-ADV"
+        }
+      }
+    },
+    "error": {
+      "source_missing": "The source no longer exists."
+    },
+    "abort": {
+      "no_source": "Install TapoVac-ADV first.",
+      "already_configured": "This source is already configured."
+    }
+  }
+}

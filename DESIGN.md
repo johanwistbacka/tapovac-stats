@@ -1,5 +1,9 @@
 # Upplägg för TapoVac Stats
 
+Version 0.1.0 implementerar nedanstående dataflöde och sensorer. Kortet använder
+en separat översiktssensor med sorterade rumsrader i stället för att slå upp
+varje rumssensor. Validering mot en verklig robot återstår.
+
 ## Första versionen
 
 Användaren lägger till TapoVac Stats via Enheter och tjänster och väljer en
