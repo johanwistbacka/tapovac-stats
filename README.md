@@ -8,8 +8,10 @@ Originalintegrationen kan fortsätta uppdateras som vanligt; ingen egen fork beh
 
 ## Status
 
-Detta är en projektgrund, inte en fungerande statistik-integration ännu.
-Installation och konfiguration kommer när dataläsning och sensorer är implementerade.
+Datadaptern och statistikberäkningarna är implementerade och testade med
+syntetiska data. Detta är ännu inte en installerbar statistik-integration:
+konfigurationsflöde, uppdateringshantering, sensorer och kort återstår.
+Adaptern har ännu inte verifierats mot en körande Home Assistant.
 `hacs.json` och katalogstrukturen är förberedda för distribution som ett eget
 HACS-repository; projektet är ännu inte publicerat eller godkänt i HACS.
 
@@ -56,4 +58,7 @@ Det konkreta upplägget för sensorer, dataflöde, uppdateringar och kort finns 
 ```text
 custom_components/tapovac_stats/  Integrationsgrund
 hacs.json                       Metadata för HACS
+tests/                          Tester för dataläsning och statistik
 ```
+
+Kör testerna med `python -m unittest discover -s tests -v` från repots rot.
