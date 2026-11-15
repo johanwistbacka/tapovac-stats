@@ -133,3 +133,39 @@ class LifecycleTests(unittest.IsolatedAsyncioTestCase):
             with patch.object(flow, 'async_set_unique_id', new=AsyncMock()), patch.object(flow, '_abort_if_unique_id_configured'):
                 result = await flow.async_step_user({'source_entry_id': 'source'})
                 self.assertEqual(result['data'], {'source_entry_id': 'source'})
+
+    async def test_timer_recalculates_midnight_without_source_change(self):
+        from unittest.mock import patch
+        before = datetime(2026, 11, 15, 22, 59, tzinfo=timezone.utc)
+        after = datetime(2026, 11, 15, 23, 1, tzinfo=timezone.utc)
+        self.source.rooms_clean_log['1:1'] = [int(before.timestamp())]
+        self.source.rooms_last_cleaned['1:1']['last_cleaned'] = int(before.timestamp())
+        with patch('custom_components.tapovac_stats.coordinator.dt_util.utcnow', return_value=before):
+            await self.coordinator.async_refresh()
+            self.assertEqual(self.coordinator.data[(1, 1)].today, 1)
+        with patch('custom_components.tapovac_stats.coordinator.dt_util.utcnow', return_value=after):
+            await self.coordinator._tick(after)
+            self.assertEqual(self.coordinator.data[(1, 1)].today, 0)
+            self.assertEqual(self.coordinator.data[(1, 1)].last_seven_days, 1)
+
+    async def test_missing_source_on_initial_setup_then_recovery(self):
+        from custom_components.tapovac_stats import async_setup_entry, async_unload_entry
+        from unittest.mock import AsyncMock
+        from custom_components.tapovac_stats.const import DOMAIN
+        removers = []
+        self.entry.async_on_unload = removers.append
+        self.hass.config_entries = SimpleNamespace(
+            async_forward_entry_setups=AsyncMock(),
+            async_unload_platforms=AsyncMock(return_value=True))
+        del self.hass.data['tapo_rv30']['source']
+        self.assertTrue(await async_setup_entry(self.hass, self.entry))
+        coordinator = self.hass.data[DOMAIN]['stats']
+        self.assertFalse(coordinator.last_update_success)
+        self.hass.data['tapo_rv30']['source'] = self.source
+        await coordinator._tick(None)
+        self.assertTrue(coordinator.last_update_success)
+        self.assertTrue(await async_unload_entry(self.hass, self.entry))
+        self.assertNotIn('stats', self.hass.data[DOMAIN])
+        for remove in removers:
+            remove()
+        self.assertIsNone(coordinator._source)

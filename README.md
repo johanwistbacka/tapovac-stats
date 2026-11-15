@@ -17,7 +17,7 @@ Originalintegrationen kan fortsätta uppdateras som vanligt; ingen fork behövs.
 ## Status
 
 Version 0.1.0 är en första testversion. Statistiktester använder syntetiska data.
-Alla 14 tester passerar, inklusive livscykel och kortmall mot Home Assistant
+Alla 16 tester passerar, inklusive livscykel och kortmall mot Home Assistant
 2025.1.4 på Python 3.12, med en simulerad TapoVac-datakälla.
 Kopplingen till en verklig robot och användarens installerade TapoVac-ADV
 måste verifieras innan normal användning. Interna upstream-ändringar kan
