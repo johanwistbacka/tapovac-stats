@@ -79,18 +79,59 @@ class LifecycleTests(unittest.IsolatedAsyncioTestCase):
     async def test_card_template(self):
         from pathlib import Path
         import yaml
+        from homeassistant.helpers import entity_registry
+        from homeassistant.helpers.entity import entity_sources
         from homeassistant.helpers.template import Template
-        await self.coordinator.async_refresh()
+        from custom_components.tapovac_stats.const import DOMAIN
         from custom_components.tapovac_stats.sensor import SummarySensor
+
+        self.entry.pref_disable_new_entities = False
+        entries = {self.entry.entry_id: self.entry}
+        self.hass.config_entries = SimpleNamespace(
+            async_entries=lambda: list(entries.values()),
+            async_get_entry=entries.get,
+        )
+        await entity_registry.async_load(self.hass)
+        registry = entity_registry.async_get(self.hass)
+
+        def register_sensor(entry, unique_id, object_id):
+            sensor = registry.async_get_or_create(
+                'sensor', DOMAIN, unique_id, config_entry=entry,
+                suggested_object_id=object_id,
+            )
+            entity_sources(self.hass)[sensor.entity_id] = {'domain': DOMAIN}
+            return sensor.entity_id
+
+        self.source.rooms_named = lambda: [{'id': 1, 'name_text': 'Kök'}, {'id': 2, 'name_text': 'Hall'}]
+        await self.coordinator.async_refresh()
         summary = SummarySensor(self.coordinator, self.entry)
-        self.hass.states.async_set('sensor.byt_till_din_rumsoversikt', '1', summary.extra_state_attributes)
+        summary_id = register_sensor(self.entry, summary.unique_id, 'robotens_statistik')
+        room_id = register_sensor(self.entry, 'kitchen_today', 'kok_idag')
+        self.hass.states.async_set(room_id, '1')
+        self.hass.states.async_set('sensor.annan_rumsoversikt', '0', {'rooms': []})
         card = yaml.safe_load((Path(__file__).parents[1] / 'examples/room_statistics_card.yaml').read_text())
-        rendered = Template(card['content'], self.hass).async_render()
-        self.assertIn('| Kök |', rendered)
-        self.assertIn('| 1 | 1 |', rendered)
-        self.hass.states.async_set('sensor.byt_till_din_rumsoversikt', 'unavailable')
-        rendered = Template(card['content'], self.hass).async_render()
-        self.assertIn('inte tillgänglig', rendered)
+        template = Template(card['content'], self.hass)
+        self.assertIn('inte tillgänglig', template.async_render())
+        self.hass.states.async_set(summary_id, '2', summary.extra_state_attributes)
+        lines = template.async_render().splitlines()
+        self.assertEqual(len(lines), 4)
+        self.assertEqual(lines[1], '| :--- | :--- | ---: | ---: |')
+        self.assertTrue(lines[2].startswith('| Kök |'))
+        self.assertTrue(lines[2].endswith('| 1 | 1 |'))
+        self.assertEqual(lines[3], '| Hall | Okänt | 0 | 0 |')
+        self.hass.states.async_set(summary_id, '0', {'rooms': []})
+        self.assertIn('Inga rum', template.async_render())
+        self.hass.states.async_set(summary_id, 'unavailable')
+        self.assertIn('inte tillgänglig', template.async_render())
+
+        other = SimpleNamespace(entry_id='other', title='TapoVac Stats – Robot två',
+                                pref_disable_new_entities=False)
+        entries[other.entry_id] = other
+        other_id = register_sensor(other, 'other_room_summary', 'robot_tva_statistik')
+        self.hass.states.async_set(other_id, '2', summary.extra_state_attributes)
+        self.assertIn('Flera TapoVac Stats-källor', template.async_render())
+        selected = Template(card['content'].replace("'tapovac_stats'", f"'{other.title}'", 1), self.hass)
+        self.assertIn('| Kök |', selected.async_render())
 
     async def test_source_listener_updates_counts(self):
         import asyncio

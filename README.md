@@ -45,10 +45,12 @@ sedan till integrationen enligt steg 3–4 ovan.
 
 ## Kortet
 
-Öppna integrationens enhet och hitta sensorn **Rumsöversikt**. Kopiera
-[examples/room_statistics_card.yaml](examples/room_statistics_card.yaml) till
-ett manuellt dashboardkort och ersätt `sensor.byt_till_din_rumsoversikt` med
-dess entitets-ID. Inga andra korttillägg behövs.
+Kopiera [examples/room_statistics_card.yaml](examples/room_statistics_card.yaml)
+till ett manuellt dashboardkort. Kortet hittar sensorn **Rumsöversikt** via
+TapoVac Stats även om sensorns entitets-ID har ändrats.
+
+Om du har flera TapoVac Stats-källor, byt `tapovac_stats` i raden `set source`
+mot namnet på den TapoVac Stats-tjänst du vill visa under Enheter och tjänster.
 
 Kortet visar bara den aktiva kartans rum. Rum utan känd städtid hamnar sist.
 Rum från andra kartor blir otillgängliga när kartan byts, och återkommer när

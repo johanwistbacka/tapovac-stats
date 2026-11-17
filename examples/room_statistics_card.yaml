@@ -1,12 +1,18 @@
 type: markdown
 title: Städning per rum
 content: |-
-  {% set entity = 'sensor.byt_till_din_rumsoversikt' -%}
-  {% if states(entity) in ['unknown', 'unavailable'] -%}
+  {% set source = 'tapovac_stats' -%}
+  {% set entities = integration_entities(source) -%}
+  {% set entries = entities | map('config_entry_id') | reject('none') | unique | list -%}
+  {% set rooms = expand(entities)
+    | rejectattr('state', 'in', ['unknown', 'unavailable'])
+    | selectattr('attributes.rooms', 'defined')
+    | map(attribute='attributes.rooms') | first | default(none) -%}
+  {% if entries | count > 1 -%}
+  Flera TapoVac Stats-källor hittades. Ange källans integrationsnamn i `source`.
+  {%- elif rooms is none -%}
   Städstatistiken är inte tillgänglig.
-  {%- else -%}
-  {% set rooms = state_attr(entity, 'rooms') or [] -%}
-  {% if not rooms -%}
+  {%- elif not rooms -%}
   Inga rum är tillgängliga på den aktiva kartan ännu.
   {%- else -%}
   | Rum | Senast | Idag | 7 dagar |
@@ -16,5 +22,4 @@ content: |-
   {% set name = room.name | replace('|', '&#124;') | replace('\n', ' ') | e -%}
   | {{ name }} | {{ as_local(stamp).strftime('%d/%m %H:%M') if stamp else 'Okänt' }} | {{ room.today if room.today is not none else '—' }} | {{ room.last_seven_days if room.last_seven_days is not none else '—' }} |
   {% endfor -%}
-  {% endif -%}
   {% endif %}
