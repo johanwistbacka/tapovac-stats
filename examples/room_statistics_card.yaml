@@ -4,15 +4,38 @@ content: |-
   {% set source = 'tapovac_stats' -%}
   {% set entities = integration_entities(source) -%}
   {% set entries = entities | map('config_entry_id') | reject('none') | unique | list -%}
-  {% set rooms = expand(entities)
+  {% set summary = expand(entities)
     | rejectattr('state', 'in', ['unknown', 'unavailable'])
     | selectattr('attributes.rooms', 'defined')
-    | map(attribute='attributes.rooms') | first | default(none) -%}
+    | first | default(none) -%}
   {% if entries | count > 1 -%}
   Flera TapoVac Stats-källor hittades. Ange källans integrationsnamn i `source`.
-  {%- elif rooms is none -%}
+  {%- elif summary is none -%}
   Städstatistiken är inte tillgänglig.
-  {%- elif not rooms -%}
+  {%- else -%}
+  {% set ns = namespace(robot_entities=[]) -%}
+  {% for entity in integration_entities('tapo_rv30')
+    if config_entry_id(entity) == summary.attributes.get('source_entry_id') -%}
+  {% set ns.robot_entities = ns.robot_entities + [entity] -%}
+  {% endfor -%}
+  {% set robot = expand(ns.robot_entities)
+    | selectattr('entity_id', 'match', '^vacuum[.]') | first | default(none) -%}
+  {% set charging = expand(ns.robot_entities)
+    | selectattr('attributes.device_class', 'defined')
+    | selectattr('attributes.device_class', 'eq', 'battery_charging')
+    | selectattr('state', 'eq', 'on') | list | count > 0 -%}
+  {% set labels = {'cleaning': 'Städar', 'paused': 'Paus',
+    'returning': 'Återvänder till laddstationen', 'idle': 'Vilar',
+    'docked': 'Laddar' if charging else 'Vid laddstationen', 'error': 'Fel',
+    'unknown': 'Status okänd', 'unavailable': 'Robotstatus inte tillgänglig'} -%}
+  {% set status = robot.state if robot is not none else 'unavailable' -%}
+  {% set room = robot.attributes.current_room if robot is not none
+    and status not in ['unknown', 'unavailable']
+    and robot.attributes.current_room is defined else none -%}
+  **{{ labels.get(status, 'Status okänd') }}{% if room is string and room | trim %}:{% endif %}**{% if room is string and room | trim %} {{ room | replace('\n', ' ') | e }}{% endif %}
+
+  {% set rooms = summary.attributes.rooms -%}
+  {% if not rooms -%}
   Inga rum är tillgängliga på den aktiva kartan ännu.
   {%- else -%}
   | Rum | Senast | Idag | 7 dagar |
@@ -22,4 +45,5 @@ content: |-
   {% set name = room.name | replace('|', '&#124;') | replace('\n', ' ') | e -%}
   | {{ name }} | {{ as_local(stamp).strftime('%d/%m %H:%M') if stamp else 'Okänt' }} | {{ room.today if room.today is not none else '—' }} | {{ room.last_seven_days if room.last_seven_days is not none else '—' }} |
   {% endfor -%}
+  {% endif %}
   {% endif %}

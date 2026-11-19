@@ -86,7 +86,9 @@ class LifecycleTests(unittest.IsolatedAsyncioTestCase):
         from custom_components.tapovac_stats.sensor import SummarySensor
 
         self.entry.pref_disable_new_entities = False
-        entries = {self.entry.entry_id: self.entry}
+        source_entry = SimpleNamespace(entry_id='source', title='Robot',
+                                       pref_disable_new_entities=False)
+        entries = {self.entry.entry_id: self.entry, source_entry.entry_id: source_entry}
         self.hass.config_entries = SimpleNamespace(
             async_entries=lambda: list(entries.values()),
             async_get_entry=entries.get,
@@ -114,11 +116,55 @@ class LifecycleTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn('inte tillgänglig', template.async_render())
         self.hass.states.async_set(summary_id, '2', summary.extra_state_attributes)
         lines = template.async_render().splitlines()
-        self.assertEqual(len(lines), 4)
-        self.assertEqual(lines[1], '| :--- | :--- | ---: | ---: |')
-        self.assertTrue(lines[2].startswith('| Kök |'))
-        self.assertTrue(lines[2].endswith('| 1 | 1 |'))
-        self.assertEqual(lines[3], '| Hall | Okänt | 0 | 0 |')
+        self.assertEqual(lines[0], '**Robotstatus inte tillgänglig**')
+        self.assertEqual(lines[1], '')
+        self.assertEqual(lines[3], '| :--- | :--- | ---: | ---: |')
+        self.assertTrue(lines[4].startswith('| Kök |'))
+        self.assertTrue(lines[4].endswith('| 1 | 1 |'))
+        self.assertEqual(lines[5], '| Hall | Okänt | 0 | 0 |')
+
+        vacuum = registry.async_get_or_create(
+            'vacuum', 'tapo_rv30', 'robot', config_entry=source_entry,
+            suggested_object_id='omdopt_robot',
+        ).entity_id
+        charger = registry.async_get_or_create(
+            'binary_sensor', 'tapo_rv30', 'charging', config_entry=source_entry,
+            suggested_object_id='omdopt_laddning',
+        ).entity_id
+        for entity_id in [vacuum, charger]:
+            entity_sources(self.hass)[entity_id] = {'domain': 'tapo_rv30'}
+        # An unrelated robot must never supply the status or room.
+        self.hass.states.async_set('vacuum.annan_robot', 'cleaning', {'current_room': 'Fel rum'})
+        self.hass.states.async_set('binary_sensor.annan_laddning', 'on',
+                                   {'device_class': 'battery_charging'})
+        for state, label in [('cleaning', 'Städar'), ('paused', 'Paus'),
+                             ('returning', 'Återvänder till laddstationen'),
+                             ('idle', 'Vilar'), ('error', 'Fel'),
+                             ('docked', 'Vid laddstationen')]:
+            with self.subTest(state=state):
+                self.hass.states.async_set(vacuum, state, {'current_room': 'Hall'})
+                rendered = template.async_render()
+                self.assertEqual(rendered.splitlines()[0], f'**{label}:** Hall')
+                self.assertIn('| Kök |', rendered)
+        self.hass.states.async_set(charger, 'on', {'device_class': 'battery_charging'})
+        self.assertEqual(template.async_render().splitlines()[0], '**Laddar:** Hall')
+        for charger_state in ['off', 'unknown', 'unavailable']:
+            self.hass.states.async_set(charger, charger_state, {'device_class': 'battery_charging'})
+            self.assertEqual(template.async_render().splitlines()[0], '**Vid laddstationen:** Hall')
+        for room in [None, '', '   ']:
+            self.hass.states.async_set(vacuum, 'paused', {'current_room': room})
+            self.assertEqual(template.async_render().splitlines()[0], '**Paus**')
+        self.hass.states.async_set(vacuum, 'cleaning')
+        self.assertEqual(template.async_render().splitlines()[0], '**Städar**')
+        self.hass.states.async_set(vacuum, 'cleaning', {'current_room': '<Hall>\nKök'})
+        self.assertEqual(template.async_render().splitlines()[0], '**Städar:** &lt;Hall&gt; Kök')
+        for state, label in [('unknown', 'Status okänd'),
+                             ('unavailable', 'Robotstatus inte tillgänglig')]:
+            self.hass.states.async_set(vacuum, state, {'current_room': 'Gammalt rum'})
+            rendered = template.async_render()
+            self.assertEqual(rendered.splitlines()[0], f'**{label}**')
+            self.assertNotIn('Gammalt rum', rendered)
+            self.assertIn('| Kök |', rendered)
         self.hass.states.async_set(summary_id, '0', {'rooms': []})
         self.assertIn('Inga rum', template.async_render())
         self.hass.states.async_set(summary_id, 'unavailable')

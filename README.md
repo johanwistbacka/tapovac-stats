@@ -11,6 +11,7 @@ Originalintegrationen kan fortsätta uppdateras som vanligt; ingen fork behövs.
 - En översiktssensor med rummen sorterade efter senaste städtillfälle,
   senast städade överst.
 - Ett vanligt Markdown-kort med kolumnerna Rum, Senast, Idag och 7 dagar.
+- Aktuell status och rum överst i kortet, exempelvis **Städar: Hall**.
 - Uppdateringar när TapoVac-ADV ändras och varje minut för tidsgränser.
 - Val av installerad TapoVac-ADV via Enheter och tjänster. Inga extra lösenord.
 
@@ -51,6 +52,18 @@ TapoVac Stats även om sensorns entitets-ID har ändrats.
 
 Om du har flera TapoVac Stats-källor, byt `tapovac_stats` i raden `set source`
 mot namnet på den TapoVac Stats-tjänst du vill visa under Enheter och tjänster.
+
+Överst visas robotens status och aktuella rum, till exempel **Städar: Hall**,
+**Paus: Kök** eller **Laddar: Vardagsrum**. Kortet hittar automatiskt roboten
+som hör till statistikens TapoVac-ADV-installation, även om entiteterna har
+bytt namn. Rummet kommer från robotens kartposition i TapoVac-ADV och utelämnas
+om det saknas. **Laddar** visas när laddningssensorn är på; annars visas
+**Vid laddstationen** när roboten är dockad. Om robotens status saknas kan
+rumsstatistiken fortfarande visas.
+
+För att få statusraden i ett befintligt dashboardkort behöver du kopiera in
+den uppdaterade kortmallen. Ingen uppdatering av integrationen eller omstart
+av Home Assistant behövs för denna ändring.
 
 Kortet visar bara den aktiva kartans rum. Rum utan känd städtid hamnar sist.
 Rum från andra kartor blir otillgängliga när kartan byts, och återkommer när
