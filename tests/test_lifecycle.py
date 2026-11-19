@@ -174,11 +174,26 @@ class LifecycleTests(unittest.IsolatedAsyncioTestCase):
         entity_sources(self.hass)['sensor.annat_batteri'] = {'domain': 'tapo_rv30'}
         self.hass.states.async_set('sensor.annat_batteri', '99', {'device_class': 'battery'})
         self.hass.states.async_set(vacuum, 'cleaning', {'current_room': 'Hall'})
-        for value in [0, 74, 100]:
+        for value, icon in [(0, 'mdi:battery-outline'), (74, 'mdi:battery-70'),
+                            (100, 'mdi:battery')]:
             self.hass.states.async_set(battery, str(value), {'device_class': 'battery'})
             rendered = template.async_render(strict=True)
-            self.assertEqual(rendered.splitlines()[0], f'**Städar:** Hall · {value} %')
+            self.assertEqual(rendered.splitlines()[0],
+                             f'**Städar:** Hall · <ha-icon icon="{icon}"></ha-icon> {value} %')
             self.assertIn('| Kök |', rendered)
+        self.hass.states.async_set(vacuum, 'docked', {'current_room': 'Vardagsrum'})
+        self.hass.states.async_set(charger, 'on', {'device_class': 'battery_charging'})
+        for value, icon in [(0, 'mdi:battery-charging-outline'),
+                            (35, 'mdi:battery-charging-30'),
+                            (74, 'mdi:battery-charging-70'),
+                            (100, 'mdi:battery-charging-100')]:
+            self.hass.states.async_set(battery, str(value), {'device_class': 'battery'})
+            self.assertEqual(template.async_render(strict=True).splitlines()[0],
+                             f'**Laddar:** Vardagsrum · <ha-icon icon="{icon}"></ha-icon> {value} %')
+        self.hass.states.async_set(charger, 'off', {'device_class': 'battery_charging'})
+        self.assertIn('<ha-icon icon="mdi:battery"></ha-icon> 100 %',
+                      template.async_render(strict=True))
+        self.hass.states.async_set(vacuum, 'cleaning', {'current_room': 'Hall'})
         for value in ['unknown', 'unavailable', '', '-1', '101', 'nan', 'inf']:
             self.hass.states.async_set(battery, value, {'device_class': 'battery'})
             self.assertEqual(template.async_render(strict=True).splitlines()[0], '**Städar:** Hall')

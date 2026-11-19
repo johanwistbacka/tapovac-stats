@@ -62,6 +62,8 @@ om det saknas. **Laddar** visas när laddningssensorn är på; annars visas
 **Vid laddstationen** när roboten är dockad. Om robotens status saknas kan
 rumsstatistiken fortfarande visas. Batteriprocenten hämtas från samma robots
 batterisensor och utelämnas om sensorn saknas eller värdet är okänt.
+Bredvid procenten visas en batteriikon som följer batterinivån och får en
+blixt när robotens laddningssensor är på.
 
 För att få statusraden i ett befintligt dashboardkort behöver du kopiera in
 den uppdaterade kortmallen. Ingen uppdatering av integrationen eller omstart

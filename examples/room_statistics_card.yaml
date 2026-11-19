@@ -38,7 +38,16 @@ content: |-
     | selectattr('attributes.device_class', 'eq', 'battery')
     | first | default(none) -%}
   {% set battery = battery_sensor.state | float(none) if battery_sensor is not none else none -%}
-  **{{ labels.get(status, 'Status okänd') }}{% if room is string and room | trim %}:{% endif %}**{% if room is string and room | trim %} {{ room | replace('\n', ' ') | e }}{% endif %}{% if battery is not none and 0 <= battery <= 100 %} · {{ battery | round(0) | int }} %{% endif %}
+  {% set battery_icon = none -%}
+  {% if battery is not none and 0 <= battery <= 100 -%}
+  {% set level = ((battery / 10) | round(0, 'floor') | int) * 10 -%}
+  {% if charging -%}
+  {% set battery_icon = 'mdi:battery-charging-outline' if level == 0 else 'mdi:battery-charging-' ~ level -%}
+  {% else -%}
+  {% set battery_icon = 'mdi:battery-outline' if level == 0 else 'mdi:battery' if level == 100 else 'mdi:battery-' ~ level -%}
+  {% endif -%}
+  {% endif -%}
+  **{{ labels.get(status, 'Status okänd') }}{% if room is string and room | trim %}:{% endif %}**{% if room is string and room | trim %} {{ room | replace('\n', ' ') | e }}{% endif %}{% if battery_icon %} · <ha-icon icon="{{ battery_icon }}"></ha-icon> {{ battery | round(0) | int }} %{% endif %}
 
   {% set rooms = summary.attributes.rooms -%}
   {% if not rooms -%}
