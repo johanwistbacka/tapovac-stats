@@ -165,6 +165,23 @@ class LifecycleTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(rendered.splitlines()[0], f'**{label}**')
             self.assertNotIn('Gammalt rum', rendered)
             self.assertIn('| Kök |', rendered)
+
+        battery = registry.async_get_or_create(
+            'sensor', 'tapo_rv30', 'battery', config_entry=source_entry,
+            suggested_object_id='omdopt_batteri',
+        ).entity_id
+        entity_sources(self.hass)[battery] = {'domain': 'tapo_rv30'}
+        entity_sources(self.hass)['sensor.annat_batteri'] = {'domain': 'tapo_rv30'}
+        self.hass.states.async_set('sensor.annat_batteri', '99', {'device_class': 'battery'})
+        self.hass.states.async_set(vacuum, 'cleaning', {'current_room': 'Hall'})
+        for value in [0, 74, 100]:
+            self.hass.states.async_set(battery, str(value), {'device_class': 'battery'})
+            rendered = template.async_render(strict=True)
+            self.assertEqual(rendered.splitlines()[0], f'**Städar:** Hall · {value} %')
+            self.assertIn('| Kök |', rendered)
+        for value in ['unknown', 'unavailable', '', '-1', '101', 'nan', 'inf']:
+            self.hass.states.async_set(battery, value, {'device_class': 'battery'})
+            self.assertEqual(template.async_render(strict=True).splitlines()[0], '**Städar:** Hall')
         self.hass.states.async_set(summary_id, '0', {'rooms': []})
         self.assertIn('Inga rum', template.async_render())
         self.hass.states.async_set(summary_id, 'unavailable')

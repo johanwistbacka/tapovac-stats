@@ -53,13 +53,15 @@ TapoVac Stats även om sensorns entitets-ID har ändrats.
 Om du har flera TapoVac Stats-källor, byt `tapovac_stats` i raden `set source`
 mot namnet på den TapoVac Stats-tjänst du vill visa under Enheter och tjänster.
 
-Överst visas robotens status och aktuella rum, till exempel **Städar: Hall**,
-**Paus: Kök** eller **Laddar: Vardagsrum**. Kortet hittar automatiskt roboten
+Överst visas robotens status, aktuella rum och batteriprocent, till exempel
+**Städar: Hall · 74 %**, **Paus: Kök · 62 %** eller **Laddar: Vardagsrum · 35 %**.
+Kortet hittar automatiskt roboten
 som hör till statistikens TapoVac-ADV-installation, även om entiteterna har
 bytt namn. Rummet kommer från robotens kartposition i TapoVac-ADV och utelämnas
 om det saknas. **Laddar** visas när laddningssensorn är på; annars visas
 **Vid laddstationen** när roboten är dockad. Om robotens status saknas kan
-rumsstatistiken fortfarande visas.
+rumsstatistiken fortfarande visas. Batteriprocenten hämtas från samma robots
+batterisensor och utelämnas om sensorn saknas eller värdet är okänt.
 
 För att få statusraden i ett befintligt dashboardkort behöver du kopiera in
 den uppdaterade kortmallen. Ingen uppdatering av integrationen eller omstart

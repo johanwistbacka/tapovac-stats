@@ -32,7 +32,13 @@ content: |-
   {% set room = robot.attributes.current_room if robot is not none
     and status not in ['unknown', 'unavailable']
     and robot.attributes.current_room is defined else none -%}
-  **{{ labels.get(status, 'Status okänd') }}{% if room is string and room | trim %}:{% endif %}**{% if room is string and room | trim %} {{ room | replace('\n', ' ') | e }}{% endif %}
+  {% set battery_sensor = expand(ns.robot_entities)
+    | selectattr('entity_id', 'match', '^sensor[.]')
+    | selectattr('attributes.device_class', 'defined')
+    | selectattr('attributes.device_class', 'eq', 'battery')
+    | first | default(none) -%}
+  {% set battery = battery_sensor.state | float(none) if battery_sensor is not none else none -%}
+  **{{ labels.get(status, 'Status okänd') }}{% if room is string and room | trim %}:{% endif %}**{% if room is string and room | trim %} {{ room | replace('\n', ' ') | e }}{% endif %}{% if battery is not none and 0 <= battery <= 100 %} · {{ battery | round(0) | int }} %{% endif %}
 
   {% set rooms = summary.attributes.rooms -%}
   {% if not rooms -%}
