@@ -117,11 +117,13 @@ class LifecycleTests(unittest.IsolatedAsyncioTestCase):
         self.hass.states.async_set(summary_id, '2', summary.extra_state_attributes)
         lines = template.async_render().splitlines()
         self.assertEqual(lines[0], '**Robotstatus inte tillgänglig**')
-        self.assertEqual(lines[1], '')
-        self.assertEqual(lines[3], '| :--- | :--- | ---: | ---: |')
-        self.assertTrue(lines[4].startswith('| Kök |'))
-        self.assertTrue(lines[4].endswith('| 1 | 1 |'))
-        self.assertEqual(lines[5], '| Hall | Okänt | 0 | 0 |')
+        self.assertIn('Idag: 1 av 2 rum städade.', lines)
+        table = [line for line in lines if line.startswith('|')]
+        self.assertEqual(len(table), 4)
+        self.assertEqual(table[1], '| :--- | :--- | ---: | ---: |')
+        self.assertTrue(table[2].startswith('| Kök | Idag '))
+        self.assertTrue(table[2].endswith('| 1 | 1 |'))
+        self.assertEqual(table[3], '| Hall | Okänt | 0 | 0 |')
 
         vacuum = registry.async_get_or_create(
             'vacuum', 'tapo_rv30', 'robot', config_entry=source_entry,
@@ -179,7 +181,9 @@ class LifecycleTests(unittest.IsolatedAsyncioTestCase):
             self.hass.states.async_set(battery, str(value), {'device_class': 'battery'})
             rendered = template.async_render(strict=True)
             self.assertEqual(rendered.splitlines()[0],
-                             f'**Städar:** Hall · <ha-icon icon="{icon}"></ha-icon> {value} %')
+                             '**Städar:** Hall · '
+                             f'<font color="{"#e53935" if value < 20 else "#607d8b"}">'
+                             f'<ha-icon icon="{icon}"></ha-icon></font> {value} %')
             self.assertIn('| Kök |', rendered)
         self.hass.states.async_set(vacuum, 'docked', {'current_room': 'Vardagsrum'})
         self.hass.states.async_set(charger, 'on', {'device_class': 'battery_charging'})
@@ -189,9 +193,10 @@ class LifecycleTests(unittest.IsolatedAsyncioTestCase):
                             (100, 'mdi:battery-charging-100')]:
             self.hass.states.async_set(battery, str(value), {'device_class': 'battery'})
             self.assertEqual(template.async_render(strict=True).splitlines()[0],
-                             f'**Laddar:** Vardagsrum · <ha-icon icon="{icon}"></ha-icon> {value} %')
+                             '**Laddar:** Vardagsrum · <font color="#43a047">'
+                             f'<ha-icon icon="{icon}"></ha-icon></font> {value} %')
         self.hass.states.async_set(charger, 'off', {'device_class': 'battery_charging'})
-        self.assertIn('<ha-icon icon="mdi:battery"></ha-icon> 100 %',
+        self.assertIn('<ha-icon icon="mdi:battery"></ha-icon></font> 100 %',
                       template.async_render(strict=True))
         self.hass.states.async_set(vacuum, 'cleaning', {'current_room': 'Hall'})
         for value in ['unknown', 'unavailable', '', '-1', '101', 'nan', 'inf']:

@@ -18,7 +18,7 @@ Originalintegrationen kan fortsätta uppdateras som vanligt; ingen fork behövs.
 ## Status
 
 Version 0.1.1 är en första testversion. Statistiktester använder syntetiska data.
-Alla 16 tester passerar, inklusive livscykel och kortmall mot Home Assistant
+Alla 24 tester passerar, inklusive livscykel och kortmall mot Home Assistant
 2025.11.1 på Python 3.13, med en simulerad TapoVac-datakälla.
 Kopplingen till en verklig robot och användarens installerade TapoVac-ADV
 måste verifieras innan normal användning. Interna upstream-ändringar kan
@@ -50,6 +50,11 @@ Kopiera [examples/room_statistics_card.yaml](examples/room_statistics_card.yaml)
 till ett manuellt dashboardkort. Kortet hittar sensorn **Rumsöversikt** via
 TapoVac Stats även om sensorns entitets-ID har ändrats.
 
+För hela gridkortet med Mushroom-kontroller till `vacuum.sisyfos_ii`, använd
+[examples/room_statistics_grid.yaml](examples/room_statistics_grid.yaml).
+Det exemplet visar korten i en kolumn och kräver att Mushroom redan finns
+installerat. Vid annan robot ändras entiteten i Mushroom-kortet.
+
 Om du har flera TapoVac Stats-källor, byt `tapovac_stats` i raden `set source`
 mot namnet på den TapoVac Stats-tjänst du vill visa under Enheter och tjänster.
 
@@ -64,6 +69,34 @@ rumsstatistiken fortfarande visas. Batteriprocenten hämtas från samma robots
 batterisensor och utelämnas om sensorn saknas eller värdet är okänt.
 Bredvid procenten visas en batteriikon som följer batterinivån och får en
 blixt när robotens laddningssensor är på.
+Ikonen är röd under 20 procent, orange vid 20–40 procent och grön under
+laddning. Över 40 procent utan laddning används en neutral blågrå färg.
+
+Aktuellt rum markeras med **▶** och fetstil i tabellen under städning. Om
+flera rum har samma namn markeras inget, eftersom datakällans aktuella rum
+bara innehåller ett namn. Datum visas som **Idag 14:32**, **Igår 09:15** eller
+datum och tid; äldre årtal tas med vid behov.
+
+Sammanfattningen **Idag: 4 av 7 rum städade** räknar rum med minst en
+registrerad städning idag, inte antalet körningar. Vid saknad historik visas
+ett minsta antal och att historiken är ofullständig, eller att statistik saknas.
+Robotens felmeddelande visas bara medan dess problemsensor rapporterar ett
+aktivt fel. Andra robotars fel och underhållsvarningar visas inte här.
+
+Längst ner finns **Städinformation**, hopfälld från början. Där visas
+rapporterad städtid, yta och förlopp när värdena finns. Ytans enhet hämtas från
+robotens ytsensor och respekterar m²/ft². Vid dockning beskrivs uppgifterna
+som den senast rapporterade körningen. Utfällningen använder Markdown-kortets
+HTML-stöd och behöver inget extra tillägg; den kan stängas när kortets innehåll
+uppdateras.
+
+Kortet förutsäger inte nästa rum eller om roboten fortsätter efter laddning.
+I granskad TapoVac-ADV-revision `fc7c6e82e3d8b3b5185d07188fa68481fe6cbc65`
+finns aktuellt rum och planerarens `due_rooms`, men ingen exponerad, säker
+besöksordning för robotens pågående körning eller återupptagning efter laddning.
+`due_rooms` är planerarens behovslista, inte robotens kö. Statusen
+**Återvänder till laddstationen** används utan att påstå att städningen är
+avslutad för dagen.
 
 För att få statusraden i ett befintligt dashboardkort behöver du kopiera in
 den uppdaterade kortmallen. Ingen uppdatering av integrationen eller omstart

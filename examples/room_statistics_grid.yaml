@@ -1,0 +1,121 @@
+type: grid
+columns: 1
+square: false
+cards:
+  - type: markdown
+    title: Städning per rum
+    content: |-
+      {% set source = 'tapovac_stats' -%}
+      {% set entities = integration_entities(source) -%}
+      {% set entries = entities | map('config_entry_id') | reject('none') | unique | list -%}
+      {% set summary = expand(entities)
+        | rejectattr('state', 'in', ['unknown', 'unavailable'])
+        | selectattr('attributes.rooms', 'defined')
+        | first | default(none) -%}
+      {% if entries | count > 1 -%}
+      Flera TapoVac Stats-källor hittades. Ange källans integrationsnamn i `source`.
+      {%- elif summary is none -%}
+      Städstatistiken är inte tillgänglig.
+      {%- else -%}
+      {% set ns = namespace(robot_entities=[]) -%}
+      {% for entity in integration_entities('tapo_rv30')
+        if config_entry_id(entity) == summary.attributes.get('source_entry_id') -%}
+      {% set ns.robot_entities = ns.robot_entities + [entity] -%}
+      {% endfor -%}
+      {% set robot = expand(ns.robot_entities)
+        | selectattr('entity_id', 'match', '^vacuum[.]') | first | default(none) -%}
+      {% set charging = expand(ns.robot_entities)
+        | selectattr('attributes.device_class', 'defined')
+        | selectattr('attributes.device_class', 'eq', 'battery_charging')
+        | selectattr('state', 'eq', 'on') | list | count > 0 -%}
+      {% set labels = {'cleaning': 'Städar', 'paused': 'Paus',
+        'returning': 'Återvänder till laddstationen', 'idle': 'Vilar',
+        'docked': 'Laddar' if charging else 'Vid laddstationen', 'error': 'Fel',
+        'unknown': 'Status okänd', 'unavailable': 'Robotstatus inte tillgänglig'} -%}
+      {% set status = robot.state if robot is not none else 'unavailable' -%}
+      {% set robot_available = robot is not none and status not in ['unknown', 'unavailable'] -%}
+      {% set room = robot.attributes.current_room if robot_available
+        and robot.attributes.current_room is defined else none -%}
+      {% set battery_sensor = expand(ns.robot_entities)
+        | selectattr('entity_id', 'match', '^sensor[.]')
+        | selectattr('attributes.device_class', 'defined')
+        | selectattr('attributes.device_class', 'eq', 'battery')
+        | first | default(none) -%}
+      {% set battery = battery_sensor.state | float(none) if battery_sensor is not none else none -%}
+      {% set battery_icon = none -%}
+      {% set battery_color = '#607d8b' -%}
+      {% if battery is not none and 0 <= battery <= 100 -%}
+      {% set level = ((battery / 10) | round(0, 'floor') | int) * 10 -%}
+      {% if charging -%}
+      {% set battery_icon = 'mdi:battery-charging-outline' if level == 0 else 'mdi:battery-charging-' ~ level -%}
+      {% else -%}
+      {% set battery_icon = 'mdi:battery-outline' if level == 0 else 'mdi:battery' if level == 100 else 'mdi:battery-' ~ level -%}
+      {% endif -%}
+      {% set battery_color = '#43a047' if charging else '#e53935' if battery < 20 else '#fb8c00' if battery <= 40 else '#607d8b' -%}
+      {% endif -%}
+      **{{ labels.get(status, 'Status okänd') }}{% if room is string and room | trim %}:{% endif %}**{% if room is string and room | trim %} {{ room | replace('\n', ' ') | e }}{% endif %}{% if battery_icon %} · <font color="{{ battery_color }}"><ha-icon icon="{{ battery_icon }}"></ha-icon></font> {{ battery | round(0) | int }} %{% endif %}
+
+      {% set rooms = summary.attributes.rooms -%}
+      {% set robot_states = expand(ns.robot_entities) | list -%}
+      {% for problem in robot_states
+        if problem.entity_id.startswith('binary_sensor.') and problem.state == 'on'
+        and problem.attributes.get('code', 0) | int(0) > 0
+        and problem.attributes.get('error') is string and problem.attributes.error | trim -%}
+      <ha-alert alert-type="error">Fel: {{ problem.attributes.error | e }}</ha-alert>
+
+      {% endfor -%}
+      {% if not rooms -%}
+      Inga rum är tillgängliga på den aktiva kartan ännu.
+      {%- else -%}
+      {% set known = rooms | rejectattr('today', 'none') | list -%}
+      {% set cleaned = known | selectattr('today', 'gt', 0) | list | count -%}
+      {% if not known -%}
+      Idag: statistik saknas.
+      {% else -%}
+      Idag: {{ 'minst ' if known | count < rooms | count else '' }}{{ cleaned }} av {{ rooms | count }} rum städade{{ ' · ofullständig historik' if known | count < rooms | count else '' }}.
+      {% endif %}
+
+      {% set local_now = now() -%}
+      {% set matches = rooms | selectattr('name', 'eq', room) | list | count -%}
+      | Rum | Senast | Idag | 7 dagar |
+      | :--- | :--- | ---: | ---: |
+      {% for room in rooms -%}
+      {% set stamp = as_datetime(room.last_cleaned, none) -%}
+      {% set name = room.name | replace('|', '&#124;') | replace('\n', ' ') | e -%}
+      {% set active = status == 'cleaning' and matches == 1 and room.name == robot.attributes.get('current_room') -%}
+      {% set local_stamp = as_local(stamp) if stamp else none -%}
+      {% set days = (local_now.date() - local_stamp.date()).days if local_stamp else none -%}
+      {% set recent = ('Idag ' if days == 0 else 'Igår ') ~ local_stamp.strftime('%H:%M') if days in [0, 1] else local_stamp.strftime('%d/%m %H:%M' if local_stamp.year == local_now.year else '%d/%m %Y %H:%M') if local_stamp else 'Okänt' -%}
+      | {% if active %}▶ **{{ name }}**{% else %}{{ name }}{% endif %} | {{ recent }} | {{ room.today if room.today is not none else '—' }} | {{ room.last_seven_days if room.last_seven_days is not none else '—' }} |
+      {% endfor -%}
+      {% endif -%}
+      {% set info = robot.attributes if robot_available else {} -%}
+      {% set minutes = info.get('clean_time_min') | float(none) -%}
+      {% set progress = info.get('clean_percent') | float(none) -%}
+      {% set area_sensor = robot_states
+        | selectattr('entity_id', 'match', '^sensor[.]')
+        | selectattr('attributes.unit_of_measurement', 'defined')
+        | selectattr('attributes.unit_of_measurement', 'in', ['m²', 'ft²'])
+        | rejectattr('state', 'in', ['unknown', 'unavailable'])
+        | first | default(none) -%}
+      {% set area = area_sensor.state | float(none) if area_sensor is not none and robot_available else none -%}
+      {% set has_time = minutes is not none and 0 <= minutes < 1000000 -%}
+      {% set has_area = area is not none and 0 <= area < 1000000 -%}
+      {% set has_progress = progress is not none and 0 <= progress <= 100 -%}
+      {% if has_time or has_area or has_progress %}
+
+      <details>
+      <summary>Städinformation</summary>
+      <p>{{ 'Pågående körning' if status in ['cleaning', 'paused', 'returning'] else 'Senast rapporterade körning' }}</p>
+      <ul>
+      {% if has_time -%}<li>Tid: {{ minutes | round(0) | int }} min</li>{% endif -%}
+      {% if has_area -%}<li>Städad yta: {{ area | round(1) | string | replace('.0', '') | replace('.', ',') }} {{ area_sensor.attributes.unit_of_measurement | e }}</li>{% endif -%}
+      {% if has_progress -%}<li>Förlopp: {{ progress | round(0) | int }} %</li>{% endif %}
+      </ul>
+      </details>
+      {% endif -%}
+      {% endif %}
+  - type: custom:mushroom-vacuum-card
+    entity: vacuum.sisyfos_ii
+    fill_container: true
+    icon_animation: true
